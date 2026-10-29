@@ -26,6 +26,27 @@
   #score{color:var(--gold)}#level{color:var(--violet)}#speed{color:var(--cyan)}#energy{color:var(--red);letter-spacing:.1em}
   .canvas-wrap{position:relative;background:#0a101a}
   canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;outline:none;touch-action:manipulation}
+  #robo{position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;overflow:visible;opacity:.26;transition:opacity .18s ease}
+  #robo[data-game-state="playing"]{opacity:1}
+  #robo .robot-unit{transform-box:view-box;transform-origin:0 0;transition:transform .2s ease-out}
+  #robo [id="braco-esquerdo"],#robo [id="braco-direito"],#robo [id="perna-esquerda"],#robo [id="perna-direita"]{transform-box:view-box;transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+  #robo #braco-esquerdo{transform-origin:168px 403px}
+  #robo #braco-direito{transform-origin:212px 403px}
+  #robo #perna-esquerda{transform-origin:178px 425px}
+  #robo #perna-direita{transform-origin:202px 425px}
+  #robo[data-state="jump"] .robot-unit{transform:translateY(-48px)}
+  #robo[data-state="jump"] #braco-esquerdo{transform:rotate(82deg)}
+  #robo[data-state="jump"] #braco-direito{transform:rotate(-94deg)}
+  #robo[data-state="jump"] #perna-esquerda{transform:rotate(28deg)}
+  #robo[data-state="jump"] #perna-direita{transform:rotate(-28deg)}
+  #robo[data-state="shoot"] #braco-esquerdo{transform:rotate(-12deg)}
+  #robo[data-state="shoot"] #braco-direito{transform:rotate(-92deg)}
+  #robo[data-state="shoot"] .muzzle{opacity:1}
+  #robo .muzzle{opacity:0;transition:opacity .08s ease}
+  #robo[data-state="idle"][data-game-state="playing"] .robot-unit{animation:robot-bob .35s ease-in-out infinite alternate}
+  #robo[data-shaking="true"]{animation:robot-jolt .04s steps(2,end) infinite alternate}
+  @keyframes robot-bob{to{transform:translateY(-2px)}}
+  @keyframes robot-jolt{from{transform:translate(-3px,-2px)}to{transform:translate(3px,2px)}}
   .inputbar{min-height:66px;border-top:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:12px 18px;background:#0e1623}
   .prompt-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--cyan);background:#5ef2dc12;border:1px solid #5ef2dc30;font-weight:900}
   .input-copy{min-width:0;flex:1}.input-label{font-size:9px;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px}
@@ -60,7 +81,37 @@
       <div class="stat"><div class="label">Integridade</div><div class="value" id="energy">♥ ♥ ♥</div></div>
     </div>
     <div class="speed-control"><div class="speed-copy"><label for="speed-slider">Ritmo do jogo</label><div class="speed-range">0,3× — 2×</div></div><input id="speed-slider" type="range" min="0.3" max="2" step="0.1" value="0.6" aria-label="Ajustar velocidade do jogo de 0,3 a 2 vezes"><output id="speed-value" for="speed-slider">0,6×</output></div>
-    <div class="canvas-wrap"><canvas id="game" width="960" height="540" tabindex="0" aria-label="Campo do jogo. Digite as palavras dos alvos para agir."></canvas></div>
+    <div class="canvas-wrap"><canvas id="game" width="960" height="540" tabindex="0" aria-label="Campo do jogo. Digite as palavras dos alvos para agir."></canvas>
+      <svg id="robo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" preserveAspectRatio="none" role="img" aria-label="Robô rebelde" data-state="idle" data-game-state="title">
+        <g id="robot-unit">
+          <ellipse cx="190" cy="444" rx="39" ry="5" fill="#000" opacity=".45"/>
+          <g id="antena" fill="none" stroke="#5ef2dc" stroke-width="3" stroke-linecap="round">
+            <path d="M190 354v-13"/><circle cx="190" cy="338" r="3.5" fill="#ffd76a" stroke="#ffd76a"/>
+          </g>
+          <g id="perna" fill="none" stroke="#8293ad" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+            <g id="perna-esquerda"><path d="M178 425l-3 14-12 2"/><path d="M158 441h13" stroke-width="5"/><circle cx="178" cy="425" r="4" fill="#5ef2dc" stroke="none"/></g>
+            <g id="perna-direita"><path d="M202 425l3 14 12 2"/><path d="M209 441h13" stroke-width="5"/><circle cx="202" cy="425" r="4" fill="#5ef2dc" stroke="none"/></g>
+          </g>
+          <g id="braco" fill="none" stroke="#5ef2dc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+            <g id="braco-esquerdo"><path d="M168 403l-12 15 1 5"/><circle cx="168" cy="403" r="5" fill="#152b37"/><path d="M153 422l5 2" stroke-width="4"/></g>
+            <g id="braco-direito"><path d="M212 403l13 10 4 7"/><circle cx="212" cy="403" r="5" fill="#152b37"/><path d="M223 414l8 4" stroke-width="4"/><path class="muzzle" d="M228 418l8-2" stroke="#a88bff" stroke-width="4"/></g>
+          </g>
+          <g id="tronco" stroke="#5ef2dc" stroke-width="3">
+            <rect x="167" y="396" width="46" height="30" rx="7" fill="#152b37"/>
+            <path d="M180 401h20" stroke="#294452" stroke-width="2"/>
+            <rect x="185" y="405" width="10" height="9" rx="2" fill="#ffd76a" stroke="none"/>
+            <circle cx="190" cy="420" r="2" fill="#5ef2dc" stroke="none"/>
+          </g>
+          <g id="cabeca" stroke="#5ef2dc" stroke-width="3" stroke-linejoin="round">
+            <rect x="163" y="353" width="54" height="39" rx="9" fill="#122c35"/>
+            <rect x="171" y="362" width="38" height="17" rx="5" fill="#06141b" stroke="none"/>
+            <rect x="178" y="368" width="6" height="4" rx="1" fill="#5ef2dc" stroke="none"/>
+            <rect x="196" y="368" width="6" height="4" rx="1" fill="#5ef2dc" stroke="none"/>
+            <path d="M174 383h32" stroke="#294452" stroke-width="2"/>
+          </g>
+        </g>
+      </svg>
+    </div>
     <div class="inputbar"><div class="prompt-icon">&gt;_</div><div class="input-copy"><div class="input-label">Comando em digitação</div><input id="typed" class="empty" type="text" placeholder="Toque aqui para digitar" aria-label="Digite a palavra do alvo" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"></div><div class="keys"><b>ESC</b> pausar &nbsp; <b>⌫</b> corrigir</div></div>
   </section>
   <button id="action-button" class="game-action" type="button">🎮 COMEÇAR A JOGAR</button>
@@ -73,6 +124,14 @@ const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
 const speedSliderEl=document.getElementById('speed-slider'),speedValueEl=document.getElementById('speed-value');
 const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),speedEl=document.getElementById('speed'),energyEl=document.getElementById('energy'),typedEl=document.getElementById('typed');
 const W=960,H=540,FLOOR=424,ROBOT_X=190;
+const roboSvg=document.getElementById('robo');
+function setRobotState(pose){
+  if(pose!=='idle'&&pose!=='jump'&&pose!=='shoot')return;
+  roboSvg.dataset.state=pose;
+  roboSvg.dataset.gameState=state;
+  roboSvg.dataset.shaking=shake>0?'true':'false';
+}
+window.setRobotState=setRobotState;
 const palette={cyan:'#5ef2dc',violet:'#a88bff',gold:'#ffd76a',red:'#ff6482',white:'#edf4ff',muted:'#8293ad'};
 const words={hazard:['SALTO','DESVIO','IMPULSO','PULO'],enemy:['PULSO','ATAQUE','LASER','DISPARO'],crystal:['CRISTAL','NUCLEO','ENERGIA','BRILHO']};
 let state='title',score=0,level=1,lives=3,baseSpeed=190,speedMultiplier=.6,elapsed=0,spawnClock=0,lastTime=0,entities=[],particles=[],stars=[],input='',selected=null,robotJump=0,robotAttack=0,flash=0,notice='',noticeTime=0,shake=0,runFrame=0;
@@ -90,21 +149,6 @@ function drawGrid(){ctx.fillStyle='#0a101a';ctx.fillRect(0,0,W,H);const g=ctx.cr
   ctx.strokeStyle='#203146';ctx.lineWidth=1;const offset=(elapsed*baseSpeed*.42)%58;for(let x=-60+offset;x<W;x+=58){ctx.beginPath();ctx.moveTo(x,FLOOR+2);ctx.lineTo(x-38,H);ctx.stroke()}
   ctx.fillStyle='#5ef2dc';ctx.globalAlpha=.7;ctx.fillRect(0,FLOOR-2,W,2);ctx.globalAlpha=1;
 }
-function drawRobot(){let lift=robotJump>0?Math.sin((1-robotJump/0.72)*Math.PI)*88:0;let y=FLOOR-7-lift;let bob=state==='playing'&&robotJump<=0?Math.sin(runFrame*9)*2:0;y+=bob;ctx.save();ctx.translate(ROBOT_X,y);if(shake>0)ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
-  ctx.shadowColor='#5ef2dc';ctx.shadowBlur=robotJump>0?22:10;ctx.lineWidth=3;ctx.strokeStyle=palette.cyan;ctx.fillStyle='#122c35';
-  // antenna
-  ctx.beginPath();ctx.moveTo(0,-63);ctx.lineTo(0,-76);ctx.stroke();ctx.beginPath();ctx.arc(0,-79,3,0,Math.PI*2);ctx.fillStyle=palette.gold;ctx.fill();
-  // head
-  roundRect(ctx,-27,-64,54,39,9);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-  ctx.fillStyle='#06141b';roundRect(ctx,-19,-55,38,17,5);ctx.fill();ctx.fillStyle=palette.cyan;ctx.fillRect(-12,-49,6,4);ctx.fillRect(6,-49,6,4);
-  // torso
-  ctx.fillStyle='#152b37';ctx.strokeStyle='#5ef2dc';roundRect(ctx,-23,-21,46,30,7);ctx.fill();ctx.stroke();ctx.fillStyle='#ffd76a';ctx.fillRect(-5,-12,10,9);
-  // arms and legs
-  ctx.lineWidth=5;ctx.strokeStyle=palette.cyan;ctx.beginPath();ctx.moveTo(-22,-14);ctx.lineTo(-34,1);ctx.moveTo(22,-14);ctx.lineTo(32,-3);ctx.stroke();
-  if(robotAttack>0){ctx.shadowColor=palette.violet;ctx.shadowBlur=18;ctx.strokeStyle=palette.violet;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(30,-9);ctx.lineTo(65,-32);ctx.stroke();ctx.beginPath();ctx.arc(69,-35,7,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0}
-  ctx.lineWidth=6;ctx.strokeStyle='#8293ad';ctx.beginPath();ctx.moveTo(-12,8);ctx.lineTo(-15,23);ctx.lineTo(-25,24);ctx.moveTo(12,8);ctx.lineTo(15,23);ctx.lineTo(25,24);ctx.stroke();
-  ctx.fillStyle='#0a101a';ctx.beginPath();ctx.ellipse(0,27,39,5,0,0,Math.PI*2);ctx.fill();ctx.restore();
-}
 function roundRect(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
 function drawTarget(e){const col=colorFor(e.type);const x=e.x,y=FLOOR;ctx.save();ctx.shadowColor=col;ctx.shadowBlur=10;ctx.lineWidth=2;ctx.strokeStyle=col;ctx.fillStyle=e.type==='hazard'?'#10272d':e.type==='enemy'?'#211a34':'#2b2615';
   if(e.type==='hazard'){ctx.beginPath();ctx.moveTo(x-23,y);ctx.lineTo(x-13,y-43);ctx.lineTo(x,y-19);ctx.lineTo(x+13,y-47);ctx.lineTo(x+24,y);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#10232c';ctx.beginPath();ctx.moveTo(x-15,y-9);ctx.lineTo(x+15,y-9);ctx.stroke()}
@@ -116,7 +160,7 @@ function drawTarget(e){const col=colorFor(e.type);const x=e.x,y=FLOOR;ctx.save()
   ctx.font='9px ui-monospace,monospace';ctx.textAlign='center';ctx.fillStyle=col;ctx.globalAlpha=.8;ctx.fillText(e.type==='hazard'?'PULAR':e.type==='enemy'?'ATACAR':'COLETAR',x,y+25);ctx.globalAlpha=1;ctx.textAlign='left';
 }
 function drawScene(){drawGrid();let nearLine=ROBOT_X+64;ctx.setLineDash([4,7]);ctx.strokeStyle='#30445a';ctx.globalAlpha=.55;ctx.beginPath();ctx.moveTo(nearLine,FLOOR-112);ctx.lineTo(nearLine,FLOOR+3);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
-  entities.forEach(drawTarget);drawRobot();
+  entities.forEach(drawTarget);
   if(noticeTime>0){ctx.textAlign='center';ctx.font='bold 13px ui-monospace,monospace';ctx.fillStyle=notice.includes('ERRO')||notice.includes('DANO')?palette.red:palette.cyan;ctx.fillText(notice,W/2,70);ctx.textAlign='left'}
   if(flash>0){ctx.fillStyle=`rgba(255,100,130,${flash*.08})`;ctx.fillRect(0,0,W,H)}
   if(state==='title'||state==='paused'||state==='over')drawOverlay();
@@ -129,7 +173,7 @@ function drawOverlay(){ctx.fillStyle='rgba(5,9,16,.74)';ctx.fillRect(0,0,W,H);ct
 }
 function drawButton(text,x,y){ctx.font='bold 13px ui-monospace,monospace';const w=ctx.measureText(text).width+42;ctx.fillStyle='#12242d';ctx.strokeStyle='#5ef2dc';ctx.lineWidth=1;roundRect(ctx,x-w/2,y-21,w,42,8);ctx.fill();ctx.stroke();ctx.fillStyle=palette.cyan;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,x,y+1)}
 function burst(x,y,color,count=12){for(let i=0;i<count;i++){let a=Math.random()*Math.PI*2,s=Math.random()*150+45;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-25,life:.45+Math.random()*.55,max:.9,color,size:Math.random()*3+1})}}
-function action(e){e.done=true;selected=null;input='';setTyped();if(e.type==='hazard'){robotJump=.72;score+=25;notice='DESVIO PERFEITO  +25';burst(ROBOT_X+30,FLOOR-20,palette.cyan,9)}else if(e.type==='enemy'){robotAttack=.38;score+=40;notice='DRONE NEUTRALIZADO  +40';burst(e.x,FLOOR-28,palette.violet,18)}else{score+=60;notice='CRISTAL COLETADO  +60';burst(e.x,FLOOR-27,palette.gold,16)}noticeTime=1.05;level=Math.floor(score/220)+1;baseSpeed=190+Math.min(level-1,12)*17;updateHud();}
+function action(e){e.done=true;selected=null;input='';setTyped();if(e.type==='hazard'){robotJump=.72;setRobotState('jump');score+=25;notice='DESVIO PERFEITO  +25';burst(ROBOT_X+30,FLOOR-20,palette.cyan,9)}else if(e.type==='enemy'){robotAttack=.38;setRobotState('shoot');score+=40;notice='DRONE NEUTRALIZADO  +40';burst(e.x,FLOOR-28,palette.violet,18)}else{score+=60;notice='CRISTAL COLETADO  +60';burst(e.x,FLOOR-27,palette.gold,16)}noticeTime=1.05;level=Math.floor(score/220)+1;baseSpeed=190+Math.min(level-1,12)*17;updateHud();}
 function hurt(){lives--;flash=.75;shake=8;notice='DANO RECEBIDO  //  INTEGRIDADE -1';noticeTime=1.1;updateHud();if(lives<=0){state='over';input='';selected=null;setTyped();updateControls()} }
 function eligible(){return entities.filter(e=>!e.done&&e.x>ROBOT_X-20&&e.x<790).sort((a,b)=>Math.abs(a.x-ROBOT_X)-Math.abs(b.x-ROBOT_X))}
 function backspaceInput(){if(input){input=input.slice(0,-1);if(!input){selected=null}else if(selected&&!entities.some(e=>e.id===selected&&e.word.startsWith(input.toUpperCase())))selected=null;setTyped()}}
@@ -156,7 +200,7 @@ function update(dt){elapsed+=dt;runFrame+=dt;spawnClock+=dt;if(spawnClock>Math.m
   if(score>0){const newLevel=Math.floor(score/220)+1;if(newLevel>level){level=newLevel;baseSpeed=190+Math.min(level-1,12)*17;updateHud();notice='NÍVEL '+String(level).padStart(2,'0')+' // VELOCIDADE AUMENTADA';noticeTime=1.2}}
 }
 function renderParticles(){for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size)}ctx.globalAlpha=1}
-function frame(now){let dt=Math.min((now-lastTime)/1000||0,.04);lastTime=now;if(state==='playing')update(dt*speedMultiplier);drawScene();renderParticles();requestAnimationFrame(frame)}
+function frame(now){let dt=Math.min((now-lastTime)/1000||0,.04);lastTime=now;if(state==='playing')update(dt*speedMultiplier);setRobotState(robotJump>0?'jump':robotAttack>0?'shoot':'idle');drawScene();renderParticles();requestAnimationFrame(frame)}
 document.addEventListener('keydown',keydown);
 typedEl.addEventListener('input',()=>{if(state!=='playing'){setTyped();return}const value=typedEl.value.toUpperCase();let added='';if(value.startsWith(input.toUpperCase()))added=value.slice(input.length);else if(input.toUpperCase().startsWith(value)){for(let n=input.length-value.length;n>0;n--)backspaceInput();return}else{while(input)backspaceInput();added=value}setTyped();for(const ch of added)processLetter(ch)});
 speedSliderEl.addEventListener('input',()=>{speedMultiplier=Number(speedSliderEl.value);const shown=speedMultiplier.toFixed(1).replace('.',',')+'×';speedValueEl.value=shown;speedValueEl.textContent=shown;updateHud()});
