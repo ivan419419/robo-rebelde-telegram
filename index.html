@@ -40,6 +40,10 @@
   .legend{display:flex;gap:16px;flex-wrap:wrap}.legend span{display:inline-flex;align-items:center;gap:6px}.dot{width:6px;height:6px;border-radius:50%;display:inline-block}.c-cyan{background:var(--cyan)}.c-violet{background:var(--violet)}.c-gold{background:var(--gold)}
   @media(max-width:600px){body{align-items:flex-start}.stat{padding:11px 9px}.label{font-size:8px;letter-spacing:.12em}.value{font-size:15px}.inputbar{padding:10px 12px;gap:9px}.keys{font-size:9px}.subtitle{font-size:9px}footer{font-size:9px}}
   @media(max-width:390px){.keys{display:none}.stat{padding-left:7px;padding-right:7px}.label{font-size:7px}}
+  .speed-control{display:grid;grid-template-columns:auto minmax(90px,1fr) auto;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:#0e1623}
+  .speed-copy{min-width:0}.speed-copy label{display:block;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}.speed-range{margin-top:4px;font-size:9px;color:#697a94;letter-spacing:.04em}
+  #speed-slider{width:100%;min-width:0;margin:0;accent-color:var(--cyan);touch-action:pan-x}
+  #speed-value{min-width:48px;text-align:right;color:var(--cyan);font-size:14px;font-weight:800;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -55,6 +59,7 @@
       <div class="stat"><div class="label">Velocidade</div><div class="value" id="speed">1.0 <small>×</small></div></div>
       <div class="stat"><div class="label">Integridade</div><div class="value" id="energy">♥ ♥ ♥</div></div>
     </div>
+    <div class="speed-control"><div class="speed-copy"><label for="speed-slider">Ritmo do jogo</label><div class="speed-range">0,3× — 2×</div></div><input id="speed-slider" type="range" min="0.3" max="2" step="0.1" value="0.6" aria-label="Ajustar velocidade do jogo de 0,3 a 2 vezes"><output id="speed-value" for="speed-slider">0,6×</output></div>
     <div class="canvas-wrap"><canvas id="game" width="960" height="540" tabindex="0" aria-label="Campo do jogo. Digite as palavras dos alvos para agir."></canvas></div>
     <div class="inputbar"><div class="prompt-icon">&gt;_</div><div class="input-copy"><div class="input-label">Comando em digitação</div><input id="typed" class="empty" type="text" placeholder="Toque aqui para digitar" aria-label="Digite a palavra do alvo" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"></div><div class="keys"><b>ESC</b> pausar &nbsp; <b>⌫</b> corrigir</div></div>
   </section>
@@ -65,14 +70,15 @@
 (()=>{
 'use strict';
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const speedSliderEl=document.getElementById('speed-slider'),speedValueEl=document.getElementById('speed-value');
 const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),speedEl=document.getElementById('speed'),energyEl=document.getElementById('energy'),typedEl=document.getElementById('typed');
 const W=960,H=540,FLOOR=424,ROBOT_X=190;
 const palette={cyan:'#5ef2dc',violet:'#a88bff',gold:'#ffd76a',red:'#ff6482',white:'#edf4ff',muted:'#8293ad'};
 const words={hazard:['SALTO','DESVIO','IMPULSO','PULO'],enemy:['PULSO','ATAQUE','LASER','DISPARO'],crystal:['CRISTAL','NUCLEO','ENERGIA','BRILHO']};
-let state='title',score=0,level=1,lives=3,baseSpeed=190,elapsed=0,spawnClock=0,lastTime=0,entities=[],particles=[],stars=[],input='',selected=null,robotJump=0,robotAttack=0,flash=0,notice='',noticeTime=0,shake=0,runFrame=0;
+let state='title',score=0,level=1,lives=3,baseSpeed=190,speedMultiplier=.6,elapsed=0,spawnClock=0,lastTime=0,entities=[],particles=[],stars=[],input='',selected=null,robotJump=0,robotAttack=0,flash=0,notice='',noticeTime=0,shake=0,runFrame=0;
 for(let i=0;i<74;i++)stars.push({x:Math.random()*W,y:Math.random()*(FLOOR-35),r:Math.random()*1.5+.4,a:Math.random()*.45+.12,speed:Math.random()*23+8});
 function reset(){score=0;level=1;lives=3;baseSpeed=190;elapsed=0;spawnClock=.3;entities=[];particles=[];input='';selected=null;robotJump=0;robotAttack=0;flash=0;notice='';noticeTime=0;shake=0;runFrame=0;state='playing';lastTime=performance.now();updateHud();setTyped();updateControls();addEntity('hazard',730);addEntity('crystal',970);}
-function updateHud(){scoreEl.textContent=String(score).padStart(6,'0');levelEl.textContent=String(level).padStart(2,'0');speedEl.innerHTML=(baseSpeed/190).toFixed(1)+' <small>×</small>';energyEl.textContent='♥ '.repeat(lives).trim()||'—';energyEl.style.opacity=lives===1?'.72':'1';}
+function updateHud(){scoreEl.textContent=String(score).padStart(6,'0');levelEl.textContent=String(level).padStart(2,'0');speedEl.innerHTML=((baseSpeed/190)*speedMultiplier).toFixed(1)+' <small>×</small>';energyEl.textContent='♥ '.repeat(lives).trim()||'—';energyEl.style.opacity=lives===1?'.72':'1';}
 function setTyped(){typedEl.value=input;typedEl.placeholder='Toque aqui para digitar';typedEl.classList.toggle('empty',!input);}
 function addEntity(type,x=W+50){const choices=words[type];entities.push({id:Math.random().toString(36).slice(2),type,x,y:FLOOR,word:choices[Math.floor(Math.random()*choices.length)],done:false,age:0});}
 function spawn(){let r=Math.random();let type=r<.43?'hazard':r<.74?'enemy':'crystal';addEntity(type);}
@@ -105,8 +111,8 @@ function drawTarget(e){const col=colorFor(e.type);const x=e.x,y=FLOOR;ctx.save()
   else if(e.type==='enemy'){roundRect(ctx,x-25,y-42,50,40,10);ctx.fill();ctx.stroke();ctx.fillStyle=col;ctx.fillRect(x-15,y-29,7,5);ctx.fillRect(x+8,y-29,7,5);ctx.strokeStyle=col;ctx.beginPath();ctx.moveTo(x-8,y-13);ctx.lineTo(x+8,y-13);ctx.stroke();ctx.beginPath();ctx.moveTo(x-29,y-25);ctx.lineTo(x-37,y-17);ctx.moveTo(x+29,y-25);ctx.lineTo(x+37,y-17);ctx.stroke()}
   else {ctx.translate(x,y-28);ctx.rotate(Math.PI/4);ctx.fillStyle='#332a13';ctx.fillRect(-13,-13,26,26);ctx.strokeRect(-13,-13,26,26);ctx.fillStyle=col;ctx.fillRect(-6,-6,12,12);ctx.rotate(-Math.PI/4);ctx.translate(-x,-(y-28));ctx.fillStyle=col;ctx.globalAlpha=.26;ctx.beginPath();ctx.ellipse(x,y-13,30,5,0,0,Math.PI*2);ctx.fill();}
   ctx.restore();
-  const wordY=e.type==='crystal'?y-91:y-94;ctx.font='bold 13px ui-monospace,monospace';let width=ctx.measureText(e.word).width+25;ctx.fillStyle='#09111b';ctx.strokeStyle=col+'99';ctx.lineWidth=1;roundRect(ctx,x-width/2,wordY-17,width,25,6);ctx.fill();ctx.stroke();
-  let typedPart=selected===e.id?input:'';ctx.textAlign='center';ctx.textBaseline='middle';const full=e.word;const part=typedPart.toUpperCase();if(part&&full.startsWith(part)){ctx.fillStyle=col;ctx.fillText(part,x-width/2+12+ctx.measureText(part).width/2,wordY-5);ctx.fillStyle='#dce7f5';ctx.fillText(full.slice(part.length),x-width/2+12+ctx.measureText(part).width+ctx.measureText(full.slice(part.length)).width/2,wordY-5)}else{ctx.fillStyle=col;ctx.fillText(full,x,wordY-5)}ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  const displayScale=canvas.getBoundingClientRect().width/W||1;const wordFontSize=Math.max(20,20/displayScale);const labelCenterY=e.type==='crystal'?y-91:y-94;ctx.font=`bold ${wordFontSize}px ui-monospace,monospace`;let width=ctx.measureText(e.word).width+24;const boxHeight=wordFontSize+12;ctx.fillStyle='#09111b';ctx.strokeStyle=col+'99';ctx.lineWidth=1;roundRect(ctx,x-width/2,labelCenterY-boxHeight/2,width,boxHeight,6);ctx.fill();ctx.stroke();
+  let typedPart=selected===e.id?input:'';ctx.textAlign='center';ctx.textBaseline='middle';const full=e.word;const part=typedPart.toUpperCase();if(part&&full.startsWith(part)){ctx.fillStyle=col;ctx.fillText(part,x-width/2+12+ctx.measureText(part).width/2,labelCenterY);ctx.fillStyle='#dce7f5';ctx.fillText(full.slice(part.length),x-width/2+12+ctx.measureText(part).width+ctx.measureText(full.slice(part.length)).width/2,labelCenterY)}else{ctx.fillStyle=col;ctx.fillText(full,x,labelCenterY)}ctx.textAlign='left';ctx.textBaseline='alphabetic';
   ctx.font='9px ui-monospace,monospace';ctx.textAlign='center';ctx.fillStyle=col;ctx.globalAlpha=.8;ctx.fillText(e.type==='hazard'?'PULAR':e.type==='enemy'?'ATACAR':'COLETAR',x,y+25);ctx.globalAlpha=1;ctx.textAlign='left';
 }
 function drawScene(){drawGrid();let nearLine=ROBOT_X+64;ctx.setLineDash([4,7]);ctx.strokeStyle='#30445a';ctx.globalAlpha=.55;ctx.beginPath();ctx.moveTo(nearLine,FLOOR-112);ctx.lineTo(nearLine,FLOOR+3);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
@@ -150,10 +156,11 @@ function update(dt){elapsed+=dt;runFrame+=dt;spawnClock+=dt;if(spawnClock>Math.m
   if(score>0){const newLevel=Math.floor(score/220)+1;if(newLevel>level){level=newLevel;baseSpeed=190+Math.min(level-1,12)*17;updateHud();notice='NÍVEL '+String(level).padStart(2,'0')+' // VELOCIDADE AUMENTADA';noticeTime=1.2}}
 }
 function renderParticles(){for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size)}ctx.globalAlpha=1}
-function frame(now){let dt=Math.min((now-lastTime)/1000||0,.04);lastTime=now;if(state==='playing')update(dt);drawScene();renderParticles();requestAnimationFrame(frame)}
+function frame(now){let dt=Math.min((now-lastTime)/1000||0,.04);lastTime=now;if(state==='playing')update(dt*speedMultiplier);drawScene();renderParticles();requestAnimationFrame(frame)}
 document.addEventListener('keydown',keydown);
 typedEl.addEventListener('input',()=>{if(state!=='playing'){setTyped();return}const value=typedEl.value.toUpperCase();let added='';if(value.startsWith(input.toUpperCase()))added=value.slice(input.length);else if(input.toUpperCase().startsWith(value)){for(let n=input.length-value.length;n>0;n--)backspaceInput();return}else{while(input)backspaceInput();added=value}setTyped();for(const ch of added)processLetter(ch)});
-const actionButton=document.getElementById('action-button');actionButton.addEventListener('click',()=>{if(state==='title'||state==='over')reset();else if(state==='playing'){state='paused';input='';selected=null;setTyped()}else if(state==='paused'){state='playing';lastTime=performance.now()}updateControls();if(state==='playing')typedEl.focus({preventScroll:true})});
+speedSliderEl.addEventListener('input',()=>{speedMultiplier=Number(speedSliderEl.value);const shown=speedMultiplier.toFixed(1).replace('.',',')+'×';speedValueEl.value=shown;speedValueEl.textContent=shown;updateHud()});
+  const actionButton=document.getElementById('action-button');actionButton.addEventListener('click',()=>{if(state==='title'||state==='over')reset();else if(state==='playing'){state='paused';input='';selected=null;setTyped()}else if(state==='paused'){state='playing';lastTime=performance.now()}updateControls();if(state==='playing')typedEl.focus({preventScroll:true})});
 canvas.addEventListener('pointerdown',()=>{if(state==='title'||state==='over')reset();if(state==='playing')typedEl.focus({preventScroll:true})});
 const tg=window.Telegram&&window.Telegram.WebApp;if(tg){try{tg.ready();tg.expand();tg.setHeaderColor('#090d16');tg.setBackgroundColor('#090d16');if(tg.disableVerticalSwipes)tg.disableVerticalSwipes()}catch(e){console.warn('Telegram WebApp SDK:',e)}}
 canvas.focus();updateHud();setTyped();updateControls();requestAnimationFrame(t=>{lastTime=t;frame(t)});
