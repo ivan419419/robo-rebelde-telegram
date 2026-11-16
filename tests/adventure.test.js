@@ -3,3 +3,9 @@ test('cada cenário é retangular, tem início, três ossos, saída e predador',
 test('é possível acessar todos os ossos e a saída após cavar a terra',()=>{for(const l of levels){const w=makeWorld(l);w.cells=w.cells.map(r=>r.map(c=>c==='D'?'.':c));for(const goal of [...w.bones,w.exit])assert.ok(shortestPath(w.cells,w.start,goal).length>0,`${l.name} ${goal.x},${goal.y}`)}});
 test('cavar abre terra e andar não atravessa parede',()=>{let w=makeWorld(levels[0]),p={x:4,y:2};assert.equal(dig(w,p,{x:1,y:0}),true);assert.equal(advance(w,p,{x:1,y:0}),true);assert.equal(advance(w,p,{x:1,y:0}),true);assert.equal(advance(w,p,{x:1,y:0}),false)});
 test('ossos são coletados uma vez e saída só abre com todos',()=>{let w=makeWorld(levels[0]);let p={...w.exit};assert.equal(completed(w,p),false);for(const b of [...w.bones]){assert.equal(collect(w,b),true);assert.equal(collect(w,b),false)}assert.equal(completed(w,p),true)});
+import {fireStone,advanceStone,dogScale} from '../adventure.js';
+test('a pedra quebra parede interna para abrir passagem',()=>{const w=makeWorld(levels[0]),p={x:4,y:1};const s=fireStone(w,p,{x:1,y:0});assert.equal(advanceStone(w,s),'wall');assert.equal(w.cells[1][5],'.');});
+test('acertar predador remove-o e recompensa pontos no jogo via colisão de projétil',()=>{const w=makeWorld(levels[0]),p={x:7,y:4};const s=fireStone(w,p,{x:1,y:0});assert.equal(advanceStone(w,s),'enemy');assert.equal(w.predators.some(e=>e.x===8&&e.y===4),false);});
+
+test('o cachorro cresce gradualmente e tem um limite visual',()=>{assert.equal(dogScale(0),1);assert.equal(dogScale(100),1.15);assert.equal(dogScale(200),1.3);assert.equal(dogScale(1000),1.65)});
+test('a borda do mapa não é destruída',()=>{const w=makeWorld(levels[0]),s=fireStone(w,{x:1,y:1},{x:-1,y:0});assert.equal(advanceStone(w,s),'edge');assert.equal(w.cells[1][0],'#')});
