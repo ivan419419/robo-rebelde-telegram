@@ -1,6 +1,10 @@
-# Robô Rebelde no Telegram
+# Cachorro Rebelde no Telegram
 
-O jogo continua estático: não precisa de servidor, banco de dados, ranking nem token de bot. A pontuação só existe durante a partida. O arquivo `index.original.html` é o backup intacto do HTML recebido.
+O jogo continua estático: não precisa de servidor, banco de dados, ranking nem token de bot. A pontuação só existe durante a partida. Os sprites transparentes do personagem estão em `assets/dog-run-sheet.png` (quatro quadros de corrida) e `assets/dog-jump.png` (salto/desvio).
+
+## Prévia local
+
+Nesta versão de revisão, nenhuma publicação é necessária. Na pasta do projeto, execute `python3 -m http.server 4173` e abra `http://localhost:4173`. Mantenha a pasta `assets` junto do arquivo `index.html`.
 
 ## 1. Publicar grátis com GitHub Pages
 
