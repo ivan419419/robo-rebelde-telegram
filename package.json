@@ -1,0 +1,1 @@
+{"name":"cachorro-rebelde-aventura-preview","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js"}}
